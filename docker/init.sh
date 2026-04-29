@@ -1,11 +1,28 @@
-#!bin/bash
+#!/bin/bash
+
+set -euo pipefail
+
+log() {
+    echo "[init] $*"
+}
+
+on_error() {
+    local exit_code=$?
+    local line_no=${1:-unknown}
+    log "ERROR: command failed at line ${line_no} with exit code ${exit_code}"
+    log "TIP: check MariaDB/Redis readiness and bench command output above"
+    exit "${exit_code}"
+}
+
+trap 'on_error $LINENO' ERR
 
 if [ -d "/home/frappe/frappe-bench/apps/frappe" ]; then
-    echo "Bench already exists, skipping init"
+    log "Bench already exists, skipping init and starting services"
     cd frappe-bench
     bench start
+    exit 0
 else
-    echo "Creating new bench..."
+    log "Creating new bench..."
 fi
 
 export PATH="${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin/:${PATH}"
@@ -39,4 +56,5 @@ bench --site hrms.localhost enable-scheduler
 bench --site hrms.localhost clear-cache
 bench use hrms.localhost
 
+log "Initialization complete, starting bench services"
 bench start

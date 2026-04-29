@@ -17,7 +17,23 @@ services:
 
   frappe:
     image: frappe/bench:latest
-    command: bash /workspace/init.sh
+    command: >
+      bash -lc '
+      if [ -f /workspace/init.sh ]; then
+        bash /workspace/init.sh;
+      elif [ -f /workspace/docker/init.sh ]; then
+        bash /workspace/docker/init.sh;
+      else
+        echo "[startup] init script not found in mounted workspace.";
+        echo "[startup] looked for /workspace/init.sh and /workspace/docker/init.sh";
+        echo "[startup] workspace listing:";
+        ls -la /workspace;
+        echo "[startup] falling back to remote init.sh download";
+        curl -fsSL https://raw.githubusercontent.com/frappe/hrms/develop/docker/init.sh -o /tmp/init.sh;
+        chmod +x /tmp/init.sh;
+        bash /tmp/init.sh;
+      fi
+      '
     environment:
       - SHELL=/bin/bash
     working_dir: /home/frappe
